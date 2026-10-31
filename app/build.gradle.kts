@@ -1,7 +1,7 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
 android { namespace = "com.delivery.decision"; compileSdk = 35
- defaultConfig { applicationId = "com.delivery.decision"; minSdk = 29; targetSdk = 34; versionCode = 2; versionName = "0.2" }
+ defaultConfig { applicationId = "com.delivery.decision"; minSdk = 29; targetSdk = 34; versionCode = 2; versionName = "0.2"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
  kotlinOptions { jvmTarget = "17" }
 }
-dependencies { implementation("com.google.mlkit:text-recognition-chinese:16.0.1"); testImplementation("junit:junit:4.13.2") }
+dependencies { implementation("com.google.mlkit:text-recognition-chinese:16.0.1"); testImplementation("junit:junit:4.13.2"); androidTestImplementation("androidx.test:runner:1.6.2"); androidTestImplementation("androidx.test.ext:junit:1.2.1") }
