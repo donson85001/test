@@ -20,7 +20,8 @@ object Decision {
   val km=Regex("([0-9]+(?:[.,][0-9]+)?)\\s*(?:公里|km)",RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)?.replace(',','.')?.toDoubleOrNull() ?: return null
   val minutes=Regex("([0-9]{1,3})\\s*(?:分鐘|分|min)",RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)?.toIntOrNull()
   if(money !in 20..1000 || km !in 0.1..50.0 || (minutes!=null && minutes !in 1..180)) return null
-  return Offer(money,km,minutes,districts.firstOrNull { text.contains(it) })
+  val destination=districts.flatMap { d -> Regex(Regex.escape(d)).findAll(text).map { it.range.first to d }.toList() }.maxByOrNull { it.first }?.second
+  return Offer(money,km,minutes,destination)
  }
  fun rules(context:Context):Rules {
   val p=context.getSharedPreferences("decision_v02",Context.MODE_PRIVATE)
