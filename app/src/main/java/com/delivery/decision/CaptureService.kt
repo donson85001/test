@@ -56,7 +56,7 @@ class CaptureService: Service() {
   bitmap.recycle(); busy=true
   recognizer.process(InputImage.fromBitmap(cropped,0)).addOnSuccessListener { result ->
    val t=result.text
-   if(t!=lastText) { lastText=t; val offer=Decision.parse(t); val answer=offer?.let { Decision.evaluate(it) }; overlay?.text=if(answer==null) "等待有效訂單…" else "${answer.first}  ${answer.second}" }
+   if(t!=lastText) { lastText=t; val offer=Decision.parse(t); val answer=offer?.let { Decision.evaluate(it, Decision.rules(this)) }; overlay?.text=if(answer==null) "等待有效訂單…" else "${answer.label}  ${answer.details}" }
   }.addOnCompleteListener { cropped.recycle(); busy=false }
  }
  override fun onDestroy() { handler.removeCallbacks(loop); display?.release(); reader?.close(); projection?.stop(); recognizer.close(); overlay?.let { wm?.removeView(it) }; super.onDestroy() }
