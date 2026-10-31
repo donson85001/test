@@ -1,17 +1,31 @@
 package com.delivery.decision
-data class Offer(val amount:Int,val km:Double,val minutes:Int?)
+import android.content.Context
+import kotlin.math.max
+data class Offer(val amount:Int,val km:Double,val minutes:Int?,val destination:String?)
+data class Advice(val label:String,val details:String)
+data class Rules(val guarantee:Int=245,val extraMinutes:Int=5,val riskMinutes:Int=8,val cautionFloor:Int=190,val guaranteeLikely:Boolean=true)
 object Decision {
+ private val districts=listOf("西屯區","南屯區","北屯區","北區","西區","東區","太平區","大里區")
  fun parse(text:String):Offer? {
   val money=Regex("(?:NT\\$|NTD|\\$|＄)\\s*([0-9]{2,4})").find(text)?.groupValues?.get(1)?.toIntOrNull() ?: return null
-  val km=Regex("([0-9]+(?:[.,][0-9]+)?)\\s*(?:公里|km|KM)").find(text)?.groupValues?.get(1)?.replace(',','.')?.toDoubleOrNull() ?: return null
-  val minutes=Regex("([0-9]{1,3})\\s*(?:分鐘|分|min)").find(text)?.groupValues?.get(1)?.toIntOrNull()
+  val km=Regex("([0-9]+(?:[.,][0-9]+)?)\\s*(?:公里|km)",RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)?.replace(',','.')?.toDoubleOrNull() ?: return null
+  val minutes=Regex("([0-9]{1,3})\\s*(?:分鐘|分|min)",RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)?.toIntOrNull()
   if(money !in 20..1000 || km !in 0.1..50.0 || (minutes!=null && minutes !in 1..180)) return null
-  return Offer(money,km,minutes)
+  return Offer(money,km,minutes,districts.firstOrNull { text.contains(it) })
  }
- fun evaluate(o:Offer):Pair<String,String> {
-  val required=when { o.km<=3 ->45; o.km<=5 ->65; o.km<=7 ->85; else ->110 }
-  val hourly=o.minutes?.let { o.amount*60/it }
-  val label=when { o.amount<required -> "不建議"; hourly!=null && hourly<180 -> "不建議"; hourly!=null && hourly<225 -> "考慮"; o.km>7 -> "考慮"; else -> "建議接" }
-  return label to "${o.amount}元 · ${o.km}公里"+(hourly?.let { " · 約${it}元/時" }?:" · 時間未知")
+ fun rules(context:Context):Rules {
+  val p=context.getSharedPreferences("decision_v02",Context.MODE_PRIVATE)
+  return Rules(extraMinutes=p.getInt("extra",5),riskMinutes=p.getInt("risk",8),cautionFloor=p.getInt("floor",190),guaranteeLikely=p.getBoolean("guarantee",true))
+ }
+ fun evaluate(o:Offer,r:Rules):Advice {
+  val dest=o.destination ?: "未辨識"
+  val risk=dest=="太平區" || dest=="大里區"
+  if(o.minutes==null) return Advice("資料不足",o.amount.toString()+"元 · "+o.km+"km · "+dest+" · 缺配送時間")
+  val raw=o.amount*60.0/o.minutes
+  val guaranteed=max(o.amount.toDouble(),r.guarantee*o.minutes/60.0)
+  val effective=(if(r.guaranteeLikely) guaranteed else o.amount.toDouble())*60.0/(o.minutes+r.extraMinutes+(if(risk)r.riskMinutes else 0))
+  val label=when { effective<r.cautionFloor -> "不建議"; risk -> "考慮"; effective>=r.guarantee -> "建議接"; else -> "考慮" }
+  val mode=if(r.guaranteeLikely)"保底情境" else "原報價情境"
+  return Advice(label,o.amount.toString()+"元 · "+o.km+"km · "+dest+" · 原"+raw.toInt()+"/h · "+mode+" "+effective.toInt()+"/h"+(if(risk)" · 注意折返" else ""))
  }
 }
