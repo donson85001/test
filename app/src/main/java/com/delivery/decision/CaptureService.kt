@@ -68,7 +68,7 @@ class CaptureService: Service() {
   display=projection?.createVirtualDisplay("DeliveryCapture",metrics.widthPixels,metrics.heightPixels,metrics.densityDpi,DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,reader!!.surface,null,handler)
   wm=getSystemService(WINDOW_SERVICE) as WindowManager
   overlay=TextView(this).apply { text="●"; textSize=19f; gravity=Gravity.CENTER; setTextColor(android.graphics.Color.WHITE); setBackgroundColor(0xcc303030.toInt()); setPadding(dp(9),dp(5),dp(9),dp(5)) }
-  val params=WindowManager.LayoutParams(dp(38),dp(34),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_SECURE,PixelFormat.TRANSLUCENT).apply { gravity=Gravity.LEFT or Gravity.CENTER_VERTICAL; x=0; y=0 }
+  val params=WindowManager.LayoutParams(dp(38),dp(34),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT).apply { gravity=Gravity.LEFT or Gravity.CENTER_VERTICAL; x=0; y=0 }
   overlayParams=params
   wm?.addView(overlay,params)
   handler.post(loop)
