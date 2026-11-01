@@ -19,7 +19,7 @@ class DecisionTest {
  @Test fun lastDistrictIsDestination() {
   val o=Decision.parse("NT$90\n19 分鐘\n4.4 km\n西屯區 取餐\n太平區 送達")!!
   assertEquals("太平區",o.destination)
-  assertTrue(Decision.evaluate(o,Rules()).details.contains("地區2/5"))
+  assertTrue(Decision.evaluate(o,Rules()).details.contains("太平區 2/5"))
  }
  @Test fun rejectIncompleteOffer() {
   assertNull(Decision.parse("NT$80 12分鐘"))
