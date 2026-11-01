@@ -80,7 +80,9 @@ class CaptureService: Service() {
   val plane=image.planes[0]; val buffer=plane.buffer
   val bitmap=android.graphics.Bitmap.createBitmap(image.width+((plane.rowStride-plane.pixelStride*image.width)/plane.pixelStride),image.height,android.graphics.Bitmap.Config.ARGB_8888)
   bitmap.copyPixelsFromBuffer(buffer); image.close()
-  val cropped=android.graphics.Bitmap.createBitmap(bitmap,0,0,resources.displayMetrics.widthPixels,resources.displayMetrics.heightPixels)
+  // OCR only the lower half: top earnings and route summaries are unrelated to the incoming offer.
+  val top=bitmap.height/2
+  val cropped=android.graphics.Bitmap.createBitmap(bitmap,0,top,resources.displayMetrics.widthPixels,bitmap.height-top)
   bitmap.recycle(); busy=true
   recognizer.process(InputImage.fromBitmap(cropped,0)).addOnSuccessListener { result ->
    val t=result.text
