@@ -38,7 +38,7 @@ class OcrIntegrationTest {
    assertEquals(34,offer.minutes)
    assertEquals(8.3,offer.km,0.001)
    assertEquals("西屯區",offer.destination)
-   assertTrue(Decision.evaluate(offer,Rules()).details.contains("地區5/5"))
+   assertTrue(Decision.evaluate(offer,Rules()).details.contains("西屯區 5/5"))
   } finally { recognizer.close(); bitmap.recycle() }
  }
 }
