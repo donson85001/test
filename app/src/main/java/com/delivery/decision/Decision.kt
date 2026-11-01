@@ -29,13 +29,21 @@ object Decision {
  }
  fun evaluate(o:Offer,r:Rules):Advice {
   val dest=o.destination ?: "未辨識"
-  val risk=rating(dest)<=2
-  if(o.minutes==null) return Advice("資料不足",o.amount.toString()+"元 · "+o.km+"km · "+dest+" · 缺配送時間")
-  val raw=o.amount*60.0/o.minutes
-  val guaranteed=max(o.amount.toDouble(),r.guarantee*o.minutes/60.0)
-  val effective=(if(r.guaranteeLikely) guaranteed else o.amount.toDouble())*60.0/(o.minutes+r.extraMinutes+(if(risk)r.riskMinutes else 0))
-  val label=when { effective<r.cautionFloor -> "不建議"; risk && effective<r.guarantee -> "考慮"; effective>=r.guarantee -> "建議接"; else -> "考慮" }
-  val mode=if(r.guaranteeLikely)"保底情境" else "原報價情境"
-  return Advice(label,o.amount.toString()+"元 · "+o.km+"km · "+dest+" · 地區"+rating(dest)+"/5("+areaNote(dest)+") · 原"+raw.toInt()+"/h · "+mode+" "+effective.toInt()+"/h"+(if(risk)" · 注意折返" else ""))
+  val areaScore=rating(dest)
+  if(o.minutes==null) return Advice("資料不足", "${o.amount}元 · ${o.km}km · ${dest} · 無法確認時間")
+  if(o.destination==null) return Advice("確認目的地", "${o.amount}元 · ${o.km}km · ${o.minutes}分 · 目的地不明，不評分")
+  // The two-week 245/h guarantee is not a per-order rate. Never display
+  // offer-level hourly earnings or impute a guaranteed per-order payout.
+  val riskKm=if(areaScore<=2) 3.0 else if(areaScore==3) 1.5 else 0.5
+  val estimatedTotalKm=o.km+riskKm
+  val pricePerKm=o.amount/estimatedTotalKm
+  val label=when {
+   areaScore<=2 && pricePerKm<15 -> "不建議"
+   pricePerKm<12 -> "不建議"
+   pricePerKm<18 -> "考慮"
+   areaScore<=2 -> "考慮"
+   else -> "可考慮接"
+  }
+  return Advice(label, "${o.amount}元 · ${o.km}km · ${o.minutes}分 · ${dest} ${areaScore}/5 · 含回程估${"%.1f".format(estimatedTotalKm)}km · ${"%.0f".format(pricePerKm)}元/km（非時薪）")
  }
 }
