@@ -1,11 +1,10 @@
 package com.delivery.decision
 import android.content.Context
-import kotlin.math.max
 data class Offer(val amount:Int,val km:Double,val minutes:Int?,val destination:String?)
 data class Advice(val label:String,val details:String)
 data class Rules(val guarantee:Int=245,val extraMinutes:Int=5,val riskMinutes:Int=8,val cautionFloor:Int=190,val guaranteeLikely:Boolean=true)
 object Decision {
- private val districts=listOf("西屯區","南屯區","北屯區","北區","西區","東區","太平區","大里區")
+ private val districts=listOf("中區","東區","南區","西區","北區","北屯區","西屯區","南屯區","太平區","大里區","霧峰區","烏日區","豐原區","后里區","石岡區","東勢區","和平區","新社區","潭子區","大雅區","神岡區","大肚區","沙鹿區","龍井區","梧棲區","清水區","大甲區","外埔區","大安區")
  // Built-in expert ratings, provisional: delivery history + return-trip exposure.
  private val districtRatings=mapOf("西屯區" to 5,"南屯區" to 4,"北屯區" to 4,"北區" to 3,"西區" to 3,"東區" to 3,"太平區" to 2,"大里區" to 2)
  private fun rating(dest:String):Int=districtRatings[dest] ?: 3
