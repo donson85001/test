@@ -18,6 +18,33 @@ class CaptureService: Service() {
  private var display:android.hardware.display.VirtualDisplay?=null
  private var wm:WindowManager?=null
  private var overlay:TextView?=null
+ private var overlayParams:WindowManager.LayoutParams?=null
+ private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
+ private fun render(advice:Advice?) {
+  val view=overlay ?: return
+  val p=overlayParams ?: return
+  if(advice==null) {
+   view.text="●"
+   view.textSize=19f
+   view.setTextColor(android.graphics.Color.WHITE)
+   view.setBackgroundColor(0xcc303030.toInt())
+   view.setPadding(dp(9),dp(5),dp(9),dp(5))
+   p.width=dp(38);p.height=dp(34)
+  } else {
+   val bg=when(advice.label) {
+    "可考慮接","建議接" -> 0xff178344.toInt()
+    "不建議" -> 0xffc62828.toInt()
+    else -> 0xffffc928.toInt()
+   }
+   view.text=advice.label
+   view.textSize=16f
+   view.setTextColor(if(bg==0xffffc928.toInt()) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+   view.setBackgroundColor(bg)
+   view.setPadding(dp(12),dp(7),dp(12),dp(7))
+   p.width=WindowManager.LayoutParams.WRAP_CONTENT;p.height=WindowManager.LayoutParams.WRAP_CONTENT
+  }
+  wm?.updateViewLayout(view,p)
+ }
  private val handler=Handler(Looper.getMainLooper())
  private val recognizer=TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
  private var busy=false
@@ -40,8 +67,9 @@ class CaptureService: Service() {
   projection?.registerCallback(object:MediaProjection.Callback(){ override fun onStop(){stopSelf()} },handler)
   display=projection?.createVirtualDisplay("DeliveryCapture",metrics.widthPixels,metrics.heightPixels,metrics.densityDpi,DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,reader!!.surface,null,handler)
   wm=getSystemService(WINDOW_SERVICE) as WindowManager
-  overlay=TextView(this).apply { text="辨識中…"; textSize=17f; setTextColor(0xffffffff.toInt()); setBackgroundColor(0xdd202020.toInt()); setPadding(22,14,22,14) }
-  val params=WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_SECURE,PixelFormat.TRANSLUCENT).apply { gravity=Gravity.TOP or Gravity.CENTER_HORIZONTAL; y=85 }
+  overlay=TextView(this).apply { text="●"; textSize=19f; gravity=Gravity.CENTER; setTextColor(android.graphics.Color.WHITE); setBackgroundColor(0xcc303030.toInt()); setPadding(dp(9),dp(5),dp(9),dp(5)) }
+  val params=WindowManager.LayoutParams(dp(38),dp(34),WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,PixelFormat.TRANSLUCENT).apply { gravity=Gravity.LEFT or Gravity.CENTER_VERTICAL; x=0; y=0 }
+  overlayParams=params
   wm?.addView(overlay,params)
   handler.post(loop)
   return START_NOT_STICKY
@@ -52,11 +80,13 @@ class CaptureService: Service() {
   val plane=image.planes[0]; val buffer=plane.buffer
   val bitmap=android.graphics.Bitmap.createBitmap(image.width+((plane.rowStride-plane.pixelStride*image.width)/plane.pixelStride),image.height,android.graphics.Bitmap.Config.ARGB_8888)
   bitmap.copyPixelsFromBuffer(buffer); image.close()
-  val cropped=android.graphics.Bitmap.createBitmap(bitmap,0,0,resources.displayMetrics.widthPixels,resources.displayMetrics.heightPixels)
+  // OCR only the lower half: top earnings and route summaries are unrelated to the incoming offer.
+  val top=bitmap.height/2
+  val cropped=android.graphics.Bitmap.createBitmap(bitmap,0,top,resources.displayMetrics.widthPixels,bitmap.height-top)
   bitmap.recycle(); busy=true
   recognizer.process(InputImage.fromBitmap(cropped,0)).addOnSuccessListener { result ->
    val t=result.text
-   if(t!=lastText) { lastText=t; val offer=Decision.parse(t); val answer=offer?.let { Decision.evaluate(it) }; overlay?.text=if(answer==null) "等待有效訂單…" else "${answer.first}  ${answer.second}" }
+   if(t!=lastText) { lastText=t; val offer=Decision.parse(t); val answer=offer?.let { Decision.evaluate(it, Decision.rules(this)) }; render(answer) }
   }.addOnCompleteListener { cropped.recycle(); busy=false }
  }
  override fun onDestroy() { handler.removeCallbacks(loop); display?.release(); reader?.close(); projection?.stop(); recognizer.close(); overlay?.let { wm?.removeView(it) }; super.onDestroy() }
